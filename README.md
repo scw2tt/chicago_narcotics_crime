@@ -1,2 +1,2 @@
 # chicago_narcotics_crime
-Using R to draw helpful insights from the Chicago Crimes on Narcotics
+Using R's data visualization capabilities to draw helpful insights from the Chicago Crimes on Narcotics.
