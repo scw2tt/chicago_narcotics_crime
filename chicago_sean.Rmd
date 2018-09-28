@@ -1,0 +1,113 @@
+---
+title: "Dissecting Crime in Chicago"
+author: "Sean Wolfe"
+date: "September 25, 2018"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+SETUP
+
+```{r}
+# import requisite libraries
+library(lubridate) # needed for date conversion
+library(ggplot2) 
+library(ggmap)
+library(dplyr)
+library(data.table)
+library(ggrepel)
+library(tidyverse)
+
+
+# import dataset [CHANGE THIS LINE]
+crimes <- read.csv("C:/Users/student/UVA/Semester 5/DS 4001/ChicagoProject/Chicago_Crimes_2012_to_2017.csv")
+
+```
+
+
+Background:
+
+The data being used comes from the CLEAR (Citizen Law Enforcement Analysis and Reporting) system of the Chicago Police Department. The dataset is posted publicly on the kaggle.com (https://www.kaggle.com/currie32/crimes-in-chicago/home). It 23 descriptive features of every recorded crime in Chicago since 2001. In the first portion of the report, we will focus on the narcotics-related crime.
+
+Initially grown for medical purposes, narcotics have been abused illegally as recreational drugs for decades. Over 100 different drugs are considered narcotics. Popular narcotics include the highly addictive drugs like cocaine and heroin. The United States Department of Justice has a strict policy against the use and distribution of these narcotics:
+
+"Our mission is to reduce the supply of illegal drugs in the United States by investigating and prosecuting priority national and international drug trafficking groups and by providing sound legal, strategic and policy guidance in support of that end." [1]
+
+Unfortunately, these narcotics still prevail in highly-populated areas via intricate drug-trafficking networks. Looking into the data of these narcotics-related crimes can provide police departments with the proper intelligence to suppress these threats to the well-being of our population. In this portion of the project we will explore the profile of narcotics crime in Chicago. Specifically, we will be looking at the narcotics crime over the past five years (2012 - 2017). 
+
+
+First, we will try to find out which times the narcotic-related crimes are occurring. Knowing the times will help police forces focus on the critical times to prevent future crimes.
+
+
+
+```{r}
+
+# isolate the data set to just narcotics crimes
+n_crimes <- filter(crimes, Primary.Type == "NARCOTICS") 
+
+# create a new feature for the hour, year, and minute. They will all eventually be used
+n_crimes <- mutate(n_crimes, 
+                   hour =  hour(lubridate::mdy_hms(Date)),
+                   year = year(lubridate::mdy_hms(Date)),
+                   minute = minute(lubridate::mdy_hms(Date))
+                   )
+
+# distribution of the time of day by hour
+ggplot(data = n_crimes, aes(n_crimes$hour)) + geom_histogram(breaks=seq(0, 24, by = 1), col = "black", fill = "blue")
+
+```
+
+As can be seen from the data, a majority of the narcotics crimes in Chicago occur in the later parts of the day. More specifically, they largely occur after 12pm. Of the three hour windows used, the window with the most narcotic-related crime occurs from 6:00 PM to 9:00 PM. Perhaps, cops should look out more during these times. Another interesting insight is that there were more narcotic-related crimes during the 9AM - NOON window compared to the NOON - 3PM, 3PM - 6PM, and 9PM-MIDNIGHT windows. 
+
+
+Our next inspection point will be the different locations where the narcotics-related crimes have been occurring. Because of our large dataset, these crimes will be randomly sampled based on the minute recorded in their time stamp, leaving us with a sample that represents roughly 20% of the narcotics-related crime. 
+
+
+```{r}
+# filter the data by twenty percent by using the minute of the crime occurring
+# we showed that the hour had some correlation, but the minutes should be generally spread out
+n_crimes_small <- n_crimes %>% filter(minute >= 48) 
+
+# pings to the google maps interface for the ggmap function to work more seemlessly (CAUTION: this may not work on the first try and might have to be re-run a few times)
+get_googlemap(urlonly = TRUE)
+ 
+# Create a map with all of the crime locations plotted.
+p <- ggmap(get_googlemap(center = c(lon =-87.6298 , lat = 41.8781),
+                         zoom = 11, scale = 2,
+                         maptype ='terrain',
+                         color = 'color'))
+p + geom_point(aes(x = Longitude, y = Latitude), data = n_crimes_small, size = 0.5) + 
+  theme(legend.position="bottom")
+
+```
+
+
+
+The map shows us that the narcotic crime, while spread out, is concentrated in two areas. Google Maps labels these regions as Oak Park (top left), and South Side (bottom right). Perhaps the drug trafficking exchange locations, are most concentrated inside of these two regions of Chicago. There are also reports sprinkled across the map throughout most of the remaining Chicago regions. The only relatively narcotic-clean poriton of Chicago map would be Lincoln Park (upper middle). This area seems to be more subdued, which can be partly explained by its surrounding landmarks: DePaul University, Chicago History Museum, and the City Hall are all near Lincoln Park.
+
+
+
+Finally, we will analyze the prescence of narcotic-related crime in Chicago over time. We will plot the amount of narcotic-related crimes over the past five years.
+
+
+```{r}
+ggplot(data = n_crimes, aes(n_crimes$year)) + geom_histogram( col = "black", fill = "blue")
+
+```
+
+As can be seen, the narcotic-related drug crime in Chicago has been decreasing, especially over the last three years. It should be noted that during 2016, the city witnessed 762 people murdered and 3550 shooting incidents during what would be called Chicago's Bloodiest Years [2]. Surprisingly, the number of narcotic-related crime during Chicago's Bloodiest Year was not boosted. From this figure, it seems that the city of Chicago has made progress with narcotic-drug prevention.
+
+
+Conclusion:
+
+After inspection of the data, a typical narcotic crime occurs during the time window of 9AM - NOON or during the time window of 6PM - 9PM. The best locations to monitor would be the regions of Oak Park or the South Side. Perhaps more surveillance could be concentrated during these time windows and in these locations to prevent the most narcotics-related drugs at the moment.
+
+
+References:
+
+[1] https://www.justice.gov/criminal/ndds
+[2] https://www.nbcchicago.com/news/local/chicago-police-violence-plan-409169355.html
